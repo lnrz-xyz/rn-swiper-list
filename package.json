@@ -1,7 +1,7 @@
 {
-  "name": "rn-swiper-list",
-  "version": "2.0.2",
-  "description": "⚡ Lightning fast and customizable tinder-like swipe card for React Native",
+  "name": "@yourusername/rn-swiper-list",
+  "version": "1.0.0",
+  "description": "⚡ Lightning fast and customizable tinder-like swipe card for React Native. Forked from lnrz-xyz/rn-swiper-list",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/src/index.d.ts",
@@ -41,14 +41,23 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Skipperlla/rn-swiper-list.git"
+    "url": "git+https://github.com/lnrz-xyz/rn-swiper-list.git"
   },
-  "author": "Skipperlla <oesmer437@gmail.com> (https://github.com/Skipperlla)",
+  "author": {
+    "name": "lnrz-xyz",
+    "url": "https://github.com/lnrz-xyz"
+  },
+  "contributors": [
+    {
+      "name": "Skipperlla",
+      "url": "https://github.com/Skipperlla"
+    }
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Skipperlla/rn-swiper-list/issues"
+    "url": "https://github.com/yourusername/rn-swiper-list/issues"
   },
-  "homepage": "https://github.com/Skipperlla/rn-swiper-list#readme",
+  "homepage": "https://github.com/yourusername/rn-swiper-list#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

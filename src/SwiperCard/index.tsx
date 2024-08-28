@@ -21,6 +21,9 @@ import type { SwiperCardOptions, SwiperCardRefType } from 'rn-swiper-list';
 
 import OverlayLabel from './OverlayLabel';
 
+const VELOCITY_THRESHOLD = 500;
+const POSITION_THRESHOLD = 0.3;
+
 const SwipeBackUserConfig = {
   damping: 15,
   stiffness: 120,
@@ -179,68 +182,64 @@ const SwipeableCard = forwardRef<
       .onFinalize((event) => {
         if (currentActiveIndex.value !== index) return;
         if (onSwipeEnd) runOnJS(onSwipeEnd)();
-        if (nextActiveIndex.value === activeIndex.value + 1) {
+
+        const velocityX = Math.abs(event.velocityX);
+        const velocityY = Math.abs(event.velocityY);
+        const isHorizontalSwipe = velocityX > velocityY;
+
+        const horizontalThresholdMet =
+          Math.abs(event.translationX) > width * POSITION_THRESHOLD ||
+          velocityX > VELOCITY_THRESHOLD;
+        const verticalThresholdMet =
+          Math.abs(event.translationY) > height * POSITION_THRESHOLD ||
+          velocityY > VELOCITY_THRESHOLD;
+
+        if (isHorizontalSwipe && horizontalThresholdMet) {
           const sign = Math.sign(event.translationX);
-          const signY = Math.sign(event.translationY);
-          const signPositionY = Number.isInteger(
-            interpolate(
-              translateY.value,
-              inputRangeY,
-              [
-                currentActiveIndex.value + 1,
-                currentActiveIndex.value,
-                currentActiveIndex.value + 1,
-              ],
-              'clamp'
-            )
-          );
-
-          if (signPositionY) {
-            if (signY === -1 && !disableTopSwipe) {
-              runOnJS(swipeTop)();
-              return;
-            }
-            if (signY === 1 && !disableBottomSwipe) {
-              runOnJS(swipeBottom)();
-              return;
-            }
+          if (sign === 1 && !disableRightSwipe) {
+            runOnJS(swipeRight)();
+            return;
           }
-
-          if (!signPositionY) {
-            if (sign === 1 && !disableRightSwipe) {
-              runOnJS(swipeRight)();
-              return;
-            }
-            if (sign === -1 && !disableLeftSwipe) {
-              runOnJS(swipeLeft)();
-              return;
-            }
+          if (sign === -1 && !disableLeftSwipe) {
+            runOnJS(swipeLeft)();
+            return;
+          }
+        } else if (!isHorizontalSwipe && verticalThresholdMet) {
+          const sign = Math.sign(event.translationY);
+          if (sign === -1 && !disableTopSwipe) {
+            runOnJS(swipeTop)();
+            return;
+          }
+          if (sign === 1 && !disableBottomSwipe) {
+            runOnJS(swipeBottom)();
+            return;
           }
         }
+
         translateX.value = withSpring(0, SwipeBackUserConfig);
         translateY.value = withSpring(0, SwipeBackUserConfig);
       });
 
     const rCardStyle = useAnimatedStyle(() => {
-      const opacity = withTiming(index - activeIndex.value < 5 ? 1 : 0);
+      const opacity = withTiming(index - activeIndex.value < 2 ? 1 : 0);
       const scale = withTiming(1 - 0.07 * (index - activeIndex.value));
+
       return {
         opacity,
         position: 'absolute',
         zIndex: -index,
         transform: [
           { rotate: `${rotateX.value}rad` },
-
           { scale: scale },
-          {
-            translateX: translateX.value,
-          },
-          {
-            translateY: translateY.value,
-          },
+          { translateX: translateX.value },
+          { translateY: translateY.value },
         ],
       };
     });
+
+    if (index - Math.floor(activeIndex.value) >= 2) {
+      return null;
+    }
 
     return (
       <GestureDetector gesture={gesture}>
