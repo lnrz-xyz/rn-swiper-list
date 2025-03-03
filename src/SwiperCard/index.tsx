@@ -21,18 +21,6 @@ import type { SwiperCardOptions, SwiperCardRefType } from 'rn-swiper-list';
 
 import OverlayLabel from './OverlayLabel';
 
-const VELOCITY_THRESHOLD = 500;
-const POSITION_THRESHOLD = 0.3;
-
-const SwipeBackUserConfig = {
-  damping: 15,
-  stiffness: 120,
-  mass: 0.5,
-  overshootClamping: false,
-  restDisplacementThreshold: 0.001,
-  restSpeedThreshold: 0.001,
-};
-
 const SwipeableCard = forwardRef<
   SwiperCardRefType,
   PropsWithChildren<SwiperCardOptions>
@@ -70,6 +58,12 @@ const SwipeableCard = forwardRef<
       onSwipeStart,
       onSwipeActive,
       onSwipeEnd,
+      swipeBackXSpringConfig,
+      swipeBackYSpringConfig,
+      swipeRightSpringConfig,
+      swipeLeftSpringConfig,
+      swipeTopSpringConfig,
+      swipeBottomSpringConfig,
     },
     ref
   ) => {
@@ -84,34 +78,70 @@ const SwipeableCard = forwardRef<
 
     const swipeRight = useCallback(() => {
       onSwipeRight?.(index);
-      translateX.value = withSpring(maxCardTranslation);
+      translateX.value = withSpring(maxCardTranslation, swipeRightSpringConfig);
       activeIndex.value++;
-    }, [index, activeIndex, maxCardTranslation, onSwipeRight, translateX]);
+    }, [
+      index,
+      activeIndex,
+      maxCardTranslation,
+      onSwipeRight,
+      translateX,
+      swipeRightSpringConfig,
+    ]);
 
     const swipeLeft = useCallback(() => {
       onSwipeLeft?.(index);
-      translateX.value = withSpring(-maxCardTranslation);
+      translateX.value = withSpring(-maxCardTranslation, swipeLeftSpringConfig);
       activeIndex.value++;
-    }, [index, activeIndex, maxCardTranslation, onSwipeLeft, translateX]);
+    }, [
+      index,
+      activeIndex,
+      maxCardTranslation,
+      onSwipeLeft,
+      translateX,
+      swipeLeftSpringConfig,
+    ]);
 
     const swipeTop = useCallback(() => {
       onSwipeTop?.(index);
-      translateY.value = withSpring(-maxCardTranslationY);
+      translateY.value = withSpring(-maxCardTranslationY, swipeTopSpringConfig);
       activeIndex.value++;
-    }, [index, activeIndex, maxCardTranslationY, onSwipeTop, translateY]);
+    }, [
+      index,
+      activeIndex,
+      maxCardTranslationY,
+      onSwipeTop,
+      translateY,
+      swipeTopSpringConfig,
+    ]);
 
     const swipeBottom = useCallback(() => {
       onSwipeBottom?.(index);
-      translateY.value = withSpring(maxCardTranslationY);
+      translateY.value = withSpring(
+        maxCardTranslationY,
+        swipeBottomSpringConfig
+      );
       activeIndex.value++;
-    }, [index, activeIndex, maxCardTranslationY, onSwipeBottom, translateY]);
+    }, [
+      index,
+      activeIndex,
+      maxCardTranslationY,
+      onSwipeBottom,
+      translateY,
+      swipeBottomSpringConfig,
+    ]);
 
     const swipeBack = useCallback(() => {
       cancelAnimation(translateX);
       cancelAnimation(translateY);
-      translateX.value = withSpring(0, SwipeBackUserConfig);
-      translateY.value = withSpring(0, SwipeBackUserConfig);
-    }, [translateX, translateY]);
+      translateX.value = withSpring(0, swipeBackXSpringConfig);
+      translateY.value = withSpring(0, swipeBackYSpringConfig);
+    }, [
+      translateX,
+      translateY,
+      swipeBackXSpringConfig,
+      swipeBackYSpringConfig,
+    ]);
 
     useImperativeHandle(
       ref,
@@ -182,64 +212,68 @@ const SwipeableCard = forwardRef<
       .onFinalize((event) => {
         if (currentActiveIndex.value !== index) return;
         if (onSwipeEnd) runOnJS(onSwipeEnd)();
-
-        const velocityX = Math.abs(event.velocityX);
-        const velocityY = Math.abs(event.velocityY);
-        const isHorizontalSwipe = velocityX > velocityY;
-
-        const horizontalThresholdMet =
-          Math.abs(event.translationX) > width * POSITION_THRESHOLD ||
-          velocityX > VELOCITY_THRESHOLD;
-        const verticalThresholdMet =
-          Math.abs(event.translationY) > height * POSITION_THRESHOLD ||
-          velocityY > VELOCITY_THRESHOLD;
-
-        if (isHorizontalSwipe && horizontalThresholdMet) {
+        if (nextActiveIndex.value === activeIndex.value + 1) {
           const sign = Math.sign(event.translationX);
-          if (sign === 1 && !disableRightSwipe) {
-            runOnJS(swipeRight)();
-            return;
+          const signY = Math.sign(event.translationY);
+          const signPositionY = Number.isInteger(
+            interpolate(
+              translateY.value,
+              inputRangeY,
+              [
+                currentActiveIndex.value + 1,
+                currentActiveIndex.value,
+                currentActiveIndex.value + 1,
+              ],
+              'clamp'
+            )
+          );
+
+          if (signPositionY) {
+            if (signY === -1 && !disableTopSwipe) {
+              runOnJS(swipeTop)();
+              return;
+            }
+            if (signY === 1 && !disableBottomSwipe) {
+              runOnJS(swipeBottom)();
+              return;
+            }
           }
-          if (sign === -1 && !disableLeftSwipe) {
-            runOnJS(swipeLeft)();
-            return;
-          }
-        } else if (!isHorizontalSwipe && verticalThresholdMet) {
-          const sign = Math.sign(event.translationY);
-          if (sign === -1 && !disableTopSwipe) {
-            runOnJS(swipeTop)();
-            return;
-          }
-          if (sign === 1 && !disableBottomSwipe) {
-            runOnJS(swipeBottom)();
-            return;
+
+          if (!signPositionY) {
+            if (sign === 1 && !disableRightSwipe) {
+              runOnJS(swipeRight)();
+              return;
+            }
+            if (sign === -1 && !disableLeftSwipe) {
+              runOnJS(swipeLeft)();
+              return;
+            }
           }
         }
-
-        translateX.value = withSpring(0, SwipeBackUserConfig);
-        translateY.value = withSpring(0, SwipeBackUserConfig);
+        translateX.value = withSpring(0, swipeBackXSpringConfig);
+        translateY.value = withSpring(0, swipeBackYSpringConfig);
       });
 
     const rCardStyle = useAnimatedStyle(() => {
-      const opacity = withTiming(index - activeIndex.value < 2 ? 1 : 0);
+      const opacity = withTiming(index - activeIndex.value < 5 ? 1 : 0);
       const scale = withTiming(1 - 0.07 * (index - activeIndex.value));
-
       return {
         opacity,
         position: 'absolute',
         zIndex: -index,
         transform: [
           { rotate: `${rotateX.value}rad` },
+
           { scale: scale },
-          { translateX: translateX.value },
-          { translateY: translateY.value },
+          {
+            translateX: translateX.value,
+          },
+          {
+            translateY: translateY.value,
+          },
         ],
       };
     });
-
-    if (index - Math.floor(activeIndex.value) >= 2) {
-      return null;
-    }
 
     return (
       <GestureDetector gesture={gesture}>

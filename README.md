@@ -4,5 +4,4 @@ This project is a fork of [rn-swiper-list](https://github.com/Skipperlla/rn-swip
 
 ## Changes in this Fork
 
-- Added velocity-based swipe detection
 - Optimized rendering performance
