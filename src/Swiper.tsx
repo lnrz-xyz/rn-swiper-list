@@ -112,7 +112,7 @@ const Swiper = <T,>(
   );
 
   return data
-    .slice(0, activeIndex.value + 1)
+    .slice(0, activeIndex.value + 2)
     .map((item, index) => {
       return (
         <SwiperCard
